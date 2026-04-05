@@ -307,7 +307,9 @@ export function registerCartBaseFields(fields) {
             // Validate shipping method using max weight and max price, min weight and min price
             const { max, min } = method;
             const total_weight = this.getData('total_weight');
-            const sub_total = this.getData('sub_total');
+            const sub_total =
+              this.getData('sub_total_with_discount') ??
+              this.getData('sub_total');
             let flag = false;
 
             if (method.condition_type === 'weight') {
@@ -339,6 +341,8 @@ export function registerCartBaseFields(fields) {
         'shipping_zone_id',
         'shipping_address',
         'sub_total',
+        'coupon',
+        'sub_total_with_discount',
         'total_weight',
         'total_qty',
         'no_shipping_required'
@@ -362,7 +366,12 @@ export function registerCartBaseFields(fields) {
           }
         }
       ],
-      dependencies: ['shipping_method', 'no_shipping_required']
+      dependencies: [
+        'shipping_method',
+        'no_shipping_required',
+        'coupon',
+        'sub_total_with_discount'
+      ]
     },
     {
       key: 'shipping_fee_draft',
@@ -441,7 +450,9 @@ export function registerCartBaseFields(fields) {
               }
               return toPrice(cost);
             } else if (shippingMethod.price_based_cost) {
-              const subTotal = this.getData('sub_total');
+              const subTotal =
+                this.getData('sub_total_with_discount') ??
+                this.getData('sub_total');
               const priceBasedCost = shippingMethod.price_based_cost
                 .map(({ min_price, cost }) => ({
                   min_price: toPrice(min_price),
@@ -465,7 +476,13 @@ export function registerCartBaseFields(fields) {
           }
         }
       ],
-      dependencies: ['shipping_method', 'no_shipping_required']
+      dependencies: [
+        'shipping_method',
+        'no_shipping_required',
+        'coupon',
+        'discount_amount',
+        'sub_total_with_discount'
+      ]
     },
     {
       key: 'shipping_fee_tax_percent',

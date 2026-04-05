@@ -14,6 +14,9 @@ export interface Coupon {
   description: string;
   discountAmount: number;
   freeShipping: number;
+  stackingRule?: string;
+  maxUsesTimePerCoupon?: number;
+  maxUsesTimePerCustomer?: number;
   startDate: { text: string; value: string };
   endDate: { text: string; value: string };
   targetProducts?: {
@@ -117,7 +120,10 @@ export default function General({ coupon }: { coupon?: Coupon }) {
           props: {
             startDate: get(coupon, 'startDate.text', ''),
             endDate: get(coupon, 'endDate.text', ''),
-            discountAmount: get(coupon, 'discountAmount', '')
+            discountAmount: get(coupon, 'discountAmount', ''),
+            stackingRule: get(coupon, 'stackingRule', 'exclusive'),
+            maxUsesTimePerCoupon: get(coupon, 'maxUsesTimePerCoupon'),
+            maxUsesTimePerCustomer: get(coupon, 'maxUsesTimePerCustomer')
           },
           sortOrder: 40
         },
@@ -151,6 +157,9 @@ export const query = `
       description
       discountAmount
       freeShipping
+      stackingRule
+      maxUsesTimePerCoupon
+      maxUsesTimePerCustomer
       startDate {
         text
       }

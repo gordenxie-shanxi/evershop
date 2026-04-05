@@ -2,6 +2,8 @@ import { select } from '@evershop/postgres-query-builder';
 import { pool } from '../../../lib/postgres/connection.js';
 import { getConfig } from '../../../lib/util/getConfig.js';
 import { toPrice } from '../../checkout/services/toPrice.js';
+import { secondItemDiscountCalculator } from './secondItemDiscountCalculator.js';
+import { spendAndSaveCalculator } from './spendAndSaveCalculator.js';
 
 export function registerDefaultCalculators() {
   return [
@@ -132,6 +134,9 @@ export function registerDefaultCalculators() {
         return false;
       }
       const targetConfig = coupon.target_products;
+      if (!targetConfig) {
+        return false;
+      }
 
       const maxQty = parseInt(targetConfig.maxQty, 10) || 0;
       if (maxQty <= 0) {
@@ -298,7 +303,7 @@ export function registerDefaultCalculators() {
         false
       );
       if (coupon.discount_type !== 'buy_x_get_y') {
-        return true;
+        return false;
       }
       const configs = coupon.buyx_gety;
       const items = cart.getItems();
@@ -352,6 +357,8 @@ export function registerDefaultCalculators() {
           await item.setData('discount_amount', discounts[item.getId()] || 0);
         })
       );
-    }
+    },
+    spendAndSaveCalculator,
+    secondItemDiscountCalculator
   ];
 }

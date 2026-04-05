@@ -261,19 +261,21 @@
       }
     },
     "max_uses_time_per_coupon": {
-      "type": "string",
-      "pattern": "^[0-9]*$",
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ],
       "errorMessage": {
-        "type": "Max uses per coupon must be a string",
-        "pattern": "Max uses per coupon must be a valid number (e.g., 1, 10, 100)"
+        "anyOf": "Max uses per coupon must be a valid number greater than or equal to 0"
       }
     },
     "max_uses_time_per_customer": {
-      "type": "string",
-      "pattern": "^[0-9]*$",
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ],
       "errorMessage": {
-        "type": "Max uses per customer must be a string",
-        "pattern": "Max uses per customer must be a valid number (e.g., 1, 5, 10)"
+        "anyOf": "Max uses per customer must be a valid number greater than or equal to 0"
       }
     },
     "start_date": {

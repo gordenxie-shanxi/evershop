@@ -60,6 +60,10 @@ export const getAvailableShippingMethods = async (
     return [];
   }
 
+  const priceBasedSubtotal = toPrice(
+    cart.sub_total_with_discount ?? cart.sub_total
+  );
+
   const methodsQuery = select().from('shipping_method');
   methodsQuery
     .leftJoin('shipping_zone_method')
@@ -79,8 +83,8 @@ export const getAvailableShippingMethods = async (
     }
     if (method.condition_type === 'price') {
       return (
-        toPrice(method.min) <= cart.sub_total &&
-        cart.sub_total <= toPrice(method.max)
+        toPrice(method.min) <= priceBasedSubtotal &&
+        priceBasedSubtotal <= toPrice(method.max)
       );
     } else if (method.condition_type === 'weight') {
       return (
@@ -140,7 +144,7 @@ export const getAvailableShippingMethods = async (
           cost: toPrice(cost.toString(), false)
         };
       } else if (method.price_based_cost) {
-        const subTotal = toPrice(cart.sub_total);
+        const subTotal = priceBasedSubtotal;
         const priceBasedCost = method.price_based_cost
           .map(({ min_price, cost }) => ({
             min_price: toPrice(min_price),

@@ -2,6 +2,7 @@ import { select } from '@evershop/postgres-query-builder';
 import { DateTime } from 'luxon';
 import { pool } from '../../../lib/postgres/connection.js';
 import { getConfig } from '../../../lib/util/getConfig.js';
+import { stackingRuleValidator } from './stackingRuleValidator.js';
 
 export function registerDefaultValidators() {
   return [
@@ -11,8 +12,8 @@ export function registerDefaultValidators() {
       }
       const discountAmount = parseFloat(coupon.discount_amount);
       if (
-        (!discountAmount || discountAmount) <= 0 &&
-        coupon.discount_type !== 'buy_x_get_y'
+        discountAmount <= 0 &&
+        !['buy_x_get_y', 'spend_and_save'].includes(coupon.discount_type)
       ) {
         return false;
       }
@@ -31,27 +32,44 @@ export function registerDefaultValidators() {
       }
     },
     async function timeUsedValidator(cart, coupon) {
-      if (
-        coupon.max_uses_time_per_coupon &&
-        parseInt(coupon.used_time, 10) >=
+      const hasCouponUsageLimit =
+        coupon.max_uses_time_per_coupon !== null &&
+        coupon.max_uses_time_per_coupon !== undefined;
+      if (hasCouponUsageLimit) {
+        const usedTime = await select()
+          .from('order')
+          .select('COUNT(order_id)', 'total')
+          .where('coupon', '=', coupon.coupon)
+          .andWhere('payment_status', '=', 'paid')
+          .load(pool);
+
+        if (
+          parseInt(usedTime.total, 10) >=
           parseInt(coupon.max_uses_time_per_coupon, 10)
-      ) {
-        return false;
+        ) {
+          return false;
+        }
       }
-      if (coupon.max_uses_time_per_customer) {
+      const hasCustomerUsageLimit =
+        coupon.max_uses_time_per_customer !== null &&
+        coupon.max_uses_time_per_customer !== undefined;
+      if (hasCustomerUsageLimit) {
         const customerId = cart.getData('customer_id');
         if (customerId) {
-          const flag = await select()
-            .from('customer_coupon_use')
-            .where('customer_id', '=', customerId)
-            .andWhere('coupon', '=', coupon.coupon)
-            .andWhere(
-              'used_time',
-              '>=',
-              parseInt(coupon.max_uses_time_per_customer, 10)
-            )
-            .execute(pool);
-          if (flag) {
+          const query = select().from('order');
+          query.where('customer_id', '=', customerId);
+          query.andWhere('coupon', '=', coupon.coupon);
+          query.andWhere(
+            'payment_status',
+            '=',
+            'paid'
+          );
+          query.select('COUNT(order_id)', 'total');
+          const usage = await query.load(pool);
+          if (
+            parseInt(usage.total, 10) >=
+            parseInt(coupon.max_uses_time_per_customer, 10)
+          ) {
             return false;
           }
         }
@@ -413,6 +431,7 @@ export function registerDefaultValidators() {
         return false;
       }
       return true;
-    }
+    },
+    stackingRuleValidator
   ];
 }

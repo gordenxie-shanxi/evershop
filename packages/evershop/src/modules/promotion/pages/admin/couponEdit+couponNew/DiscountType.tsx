@@ -1,8 +1,10 @@
 import Area from '@components/common/Area.js';
 import { RadioGroupField } from '@components/common/form/RadioGroupField.js';
 import React from 'react';
+import { useWatch } from 'react-hook-form';
 import { get } from '../../../../../lib/util/get.js';
 import { BuyXGetY } from './components/BuyXGetY.js';
+import { SpendTiers } from './components/SpendTiers.js';
 import { TargetProducts } from './components/TargetProducts.js';
 import { Coupon } from './General.js';
 
@@ -12,6 +14,11 @@ interface DiscountTypeProps {
 export default function DiscountType({ coupon }: DiscountTypeProps) {
   const targetProducts = get(coupon, 'targetProducts', {});
   const buyxGety = get(coupon, 'buyxGety', []);
+
+  const selectedDiscountType = useWatch({
+    name: 'discount_type',
+    defaultValue: get(coupon, 'discountType', '')
+  });
 
   return (
     <div>
@@ -42,7 +49,16 @@ export default function DiscountType({ coupon }: DiscountTypeProps) {
                         value: 'percentage_discount_to_specific_products',
                         label: 'Percentage discount to specific products'
                       },
-                      { value: 'buy_x_get_y', label: 'Buy X get Y' }
+                      { value: 'buy_x_get_y', label: 'Buy X get Y' },
+                      {
+                        value: 'spend_and_save',
+                        label:
+                          'Spend and Save (满减) - Tiered spend discounts'
+                      },
+                      {
+                        value: 'second_item_discount',
+                        label: 'Second Item Discount (第二件折扣)'
+                      }
                     ]}
                     defaultValue={get(coupon, 'discountType', '')}
                     name="discount_type"
@@ -63,6 +79,9 @@ export default function DiscountType({ coupon }: DiscountTypeProps) {
           requireProducts={buyxGety}
           discountType={get(coupon, 'discountType', '')}
         />
+        {selectedDiscountType === 'spend_and_save' && (
+          <SpendTiers tiers={get(coupon, 'spendTiers', [])} />
+        )}
       </div>
     </div>
   );
@@ -92,6 +111,10 @@ export const query = `
         getQty
         maxY
         discount
+      }
+      spendTiers {
+        minAmount
+        discountAmount
       }
     }
   }
