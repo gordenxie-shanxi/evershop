@@ -12,15 +12,31 @@ import {
 } from '../../../../lib/util/registry.js';
 import { getAjv } from '../../../base/services/getAjv.js';
 import couponDataSchema from './couponDataSchema.json' with { type: 'json' };
+import { normalizeCouponPayload } from './normalizeCouponPayload.js';
+
+function validateSpendAndSaveCouponData(data) {
+  if (
+    data.discount_type === 'spend_and_save' &&
+    (!Array.isArray(data.spend_tiers) || data.spend_tiers.length === 0)
+  ) {
+    throw new Error('Spend and save coupons require at least one spend tier');
+  }
+
+  if (data.discount_type === 'spend_and_save' && data.discount_amount === undefined) {
+    data.discount_amount = 0;
+  }
+}
 
 function validateCouponDataBeforeInsert(data) {
   const ajv = getAjv();
   couponDataSchema.required = [
     'coupon',
     'status',
-    'discount_amount',
     'discount_type'
   ];
+  if (data.discount_type !== 'spend_and_save') {
+    couponDataSchema.required.push('discount_amount');
+  }
   const jsonSchema = getValueSync(
     'createCouponDataJsonSchema',
     couponDataSchema
@@ -48,7 +64,10 @@ async function createCoupon(data, context) {
   const connection = await getConnection();
   await startTransaction(connection);
   try {
-    const couponData = await getValue('couponDataBeforeCreate', data);
+    const couponData = normalizeCouponPayload(
+      await getValue('couponDataBeforeCreate', data)
+    );
+    validateSpendAndSaveCouponData(couponData);
     // Validate coupon data
     validateCouponDataBeforeInsert(couponData);
 

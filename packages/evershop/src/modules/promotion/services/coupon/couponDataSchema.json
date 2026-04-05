@@ -261,19 +261,21 @@
       }
     },
     "max_uses_time_per_coupon": {
-      "type": "string",
-      "pattern": "^[0-9]*$",
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ],
       "errorMessage": {
-        "type": "Max uses per coupon must be a string",
-        "pattern": "Max uses per coupon must be a valid number (e.g., 1, 10, 100)"
+        "anyOf": "Max uses per coupon must be a valid number greater than or equal to 0"
       }
     },
     "max_uses_time_per_customer": {
-      "type": "string",
-      "pattern": "^[0-9]*$",
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ],
       "errorMessage": {
-        "type": "Max uses per customer must be a string",
-        "pattern": "Max uses per customer must be a valid number (e.g., 1, 5, 10)"
+        "anyOf": "Max uses per customer must be a valid number greater than or equal to 0"
       }
     },
     "start_date": {
@@ -297,76 +299,60 @@
       "errorMessage": {
         "anyOf": "End date must be a valid date string, empty string, or null (e.g., 2025-12-31)"
       }
-    }
-  },
-  "buyx_gety": {
-    "type": "array",
-    "items": {
-      "type": "object",
-      "properties": {
-        "buy_qty": {
-          "type": ["string", "integer"],
-          "pattern": "^[0-9]*$",
-          "errorMessage": {
-            "type": "Buy quantity must be a string or number",
-            "pattern": "Buy quantity must be a valid whole number (e.g., 1, 2, 5)"
+    },
+    "buyx_gety": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "buy_qty": {
+            "type": ["string", "integer"],
+            "pattern": "^[0-9]*$",
+            "errorMessage": {
+              "type": "Buy quantity must be a string or number",
+              "pattern": "Buy quantity must be a valid whole number (e.g., 1, 2, 5)"
+            }
+          },
+          "get_qty": {
+            "type": ["string", "integer"],
+            "pattern": "^[0-9]*$",
+            "errorMessage": {
+              "type": "Get quantity must be a string or number",
+              "pattern": "Get quantity must be a valid whole number (e.g., 1, 2, 5)"
+            }
+          },
+          "max_y": {
+            "type": ["string", "integer"],
+            "pattern": "^[0-9]*$",
+            "errorMessage": {
+              "type": "Max Y must be a string or number",
+              "pattern": "Max Y must be a valid whole number (e.g., 1, 5, 10)"
+            }
+          },
+          "sku": {
+            "type": "string",
+            "minLength": 1,
+            "errorMessage": {
+              "type": "SKU must be a string",
+              "minLength": "SKU is required and cannot be empty"
+            }
           }
         },
-        "get_qty": {
-          "type": ["string", "integer"],
-          "pattern": "^[0-9]*$",
-          "errorMessage": {
-            "type": "Get quantity must be a string or number",
-            "pattern": "Get quantity must be a valid whole number (e.g., 1, 2, 5)"
-          }
-        },
-        "max_y": {
-          "type": ["string", "integer"],
-          "pattern": "^[0-9]*$",
-          "errorMessage": {
-            "type": "Max Y must be a string or number",
-            "pattern": "Max Y must be a valid whole number (e.g., 1, 5, 10)"
-          }
-        },
-        "sku": {
-          "type": "string",
-          "minLength": 1,
-          "errorMessage": {
-            "type": "SKU must be a string",
-            "minLength": "SKU is required and cannot be empty"
+        "required": ["buy_qty", "get_qty", "max_y", "sku"],
+        "additionalProperties": true,
+        "errorMessage": {
+          "type": "Buy X Get Y item must be an object",
+          "required": {
+            "buy_qty": "Buy quantity is required",
+            "get_qty": "Get quantity is required",
+            "max_y": "Max Y is required",
+            "sku": "SKU is required"
           }
         }
       },
-      "required": ["buy_qty", "get_qty", "max_y", "sku"],
-      "additionalProperties": true,
       "errorMessage": {
-        "type": "Buy X Get Y item must be an object",
-        "required": {
-          "buy_qty": "Buy quantity is required",
-          "get_qty": "Get quantity is required",
-          "max_y": "Max Y is required",
-          "sku": "SKU is required"
-        }
+        "type": "Buy X Get Y must be an array"
       }
-    },
-    "errorMessage": {
-      "type": "Buy X Get Y must be an array"
-    }
-  },
-  "start_date": {
-    "type": "string",
-    "format": "date",
-    "errorMessage": {
-      "type": "Start date must be a string",
-      "format": "Start date must be a valid date (e.g., 2025-01-01)"
-    }
-  },
-  "end_date": {
-    "type": "string",
-    "format": "date",
-    "errorMessage": {
-      "type": "End date must be a string",
-      "format": "End date must be a valid date (e.g., 2025-12-31)"
     }
   },
   "additionalProperties": true

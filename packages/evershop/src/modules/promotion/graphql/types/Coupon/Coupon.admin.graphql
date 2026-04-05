@@ -22,6 +22,8 @@ type Coupon {
   editUrl: String!
   updateApi: String!
   deleteApi: String!
+  stackingRule: String
+  spendTiers: [SpendTier]
 }
 
 """
@@ -84,4 +86,87 @@ type CouponCollection {
 extend type Query {
   coupon(id: Int): Coupon
   coupons(filters: [FilterInput]): CouponCollection
+}
+
+"""
+Spend tier for spend-and-save coupons
+"""
+type SpendTier {
+  minAmount: Float!
+  discountAmount: Float!
+}
+
+"""
+Represents a promotion (e.g. spend_and_save, second_item_discount, limited_time_special)
+"""
+type Promotion {
+  promotionId: Int
+  uuid: String!
+  name: String!
+  description: String
+  status: Int!
+  type: String!
+  priority: Int!
+  startDate: DateTime
+  endDate: DateTime
+  conditions: JSON
+  actions: JSON
+  editUrl: String!
+  updateApi: String!
+  deleteApi: String!
+}
+
+"""
+Returns a collection of promotions
+"""
+type PromotionCollection {
+  items: [Promotion]
+  currentPage: Int!
+  total: Int!
+  currentFilters: [Filter]
+}
+
+"""
+Describes a conflict detected between active promotions / coupons
+"""
+type PromotionConflict {
+  type: String!
+  severity: String!
+  message: String!
+  affectedIds: [String]
+}
+
+extend type Query {
+  promotion(id: String): Promotion
+  promotions(filters: [FilterInput]): PromotionCollection
+  promotionConflicts: [PromotionConflict]
+}
+
+extend type Mutation {
+  createPromotion(
+    name: String!
+    description: String
+    status: Int
+    type: String!
+    priority: Int
+    startDate: String
+    endDate: String
+    conditions: JSON
+    actions: JSON
+  ): Promotion
+
+  updatePromotion(
+    id: String!
+    name: String
+    description: String
+    status: Int
+    type: String
+    priority: Int
+    startDate: String
+    endDate: String
+    conditions: JSON
+    actions: JSON
+  ): Promotion
+
+  deletePromotion(id: String!): Boolean
 }

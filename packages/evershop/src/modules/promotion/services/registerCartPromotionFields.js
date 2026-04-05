@@ -1,7 +1,14 @@
 import { getConfig } from '../../../lib/util/getConfig.js';
+import { getValueSync } from '../../../lib/util/registry.js';
 import { toPrice } from '../../checkout/services/toPrice.js';
 import { validateCoupon } from './couponValidator.js';
 import { calculateDiscount } from './discountCalculator.js';
+import {
+  applyItemDiscountSnapshot,
+  captureItemDiscountSnapshot,
+  getBestPromotionDiscount,
+  mergeDiscountSnapshots
+} from './promotionRuntimeService.js';
 
 export function registerCartPromotionFields(fields) {
   const newFields = fields.concat(
@@ -29,24 +36,61 @@ export function registerCartPromotionFields(fields) {
         key: 'discount_amount',
         resolvers: [
           async function resolver() {
-            const coupon = this.getData('coupon');
             const items = this.getItems();
-            if (!coupon) {
-              await Promise.all(
-                items.map(async (item) => {
-                  item.setData('discount_amount', 0);
-                })
-              );
-              return 0;
-            }
-            // Start calculate discount amount
-            await calculateDiscount(this, coupon);
-            let discountAmount = 0;
+            const promotionCandidate = await getBestPromotionDiscount(this);
+            const promotionDiscounts = promotionCandidate.discounts;
+            const coupon = this.getData('coupon');
 
-            for (const item of items) {
-              discountAmount += item.getData('discount_amount');
+            if (!coupon) {
+              await applyItemDiscountSnapshot(items, promotionDiscounts);
+              return promotionCandidate.total;
             }
-            return discountAmount;
+
+            const isCouponValid = await validateCoupon(this, coupon);
+            if (!isCouponValid) {
+              await applyItemDiscountSnapshot(items, promotionDiscounts);
+              return promotionCandidate.total;
+            }
+
+            await applyItemDiscountSnapshot(items, {});
+            await calculateDiscount(this, coupon);
+            const couponSnapshot = captureItemDiscountSnapshot(items);
+
+            const couponLoader = getValueSync('couponLoaderFunction');
+            const couponDefinition = couponLoader
+              ? await couponLoader(coupon)
+              : null;
+            const isStackable =
+              promotionCandidate.total > 0 &&
+              couponDefinition?.stacking_rule === 'stackable';
+            const hasNonDiscountBenefit = couponDefinition?.free_shipping === true;
+
+            if (couponSnapshot.total === 0) {
+              if (isStackable || !hasNonDiscountBenefit) {
+                await applyItemDiscountSnapshot(items, promotionDiscounts);
+                return promotionCandidate.total;
+              }
+
+              await applyItemDiscountSnapshot(items, couponSnapshot.discounts);
+              return couponSnapshot.total;
+            }
+
+            if (!isStackable) {
+              await applyItemDiscountSnapshot(items, couponSnapshot.discounts);
+              return couponSnapshot.total;
+            }
+
+            await applyItemDiscountSnapshot(
+              items,
+              mergeDiscountSnapshots(
+                items,
+                promotionDiscounts,
+                couponSnapshot.discounts
+              )
+            );
+
+            const mergedSnapshot = captureItemDiscountSnapshot(items);
+            return mergedSnapshot.total;
           }
         ],
         dependencies: ['coupon', 'sub_total', 'sub_total_incl_tax']
@@ -101,9 +145,9 @@ export function registerCartPromotionFields(fields) {
         dependencies: ['sub_total_with_discount', 'tax_amount']
       },
       {
-        key: 'shipping_fee_excl_tax', // This is to make sure the shipping fee is calculated after the coupon validation
+        key: 'shipping_fee_excl_tax', // This is to make sure shipping is calculated after promotion/coupon discounts
         resolvers: [],
-        dependencies: ['coupon']
+        dependencies: ['discount_amount']
       },
       {
         key: 'grand_total',

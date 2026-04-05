@@ -6,6 +6,7 @@ import { registerCartItemPromotionFields } from './services/registerCartItemProm
 import { registerCartPromotionFields } from './services/registerCartPromotionFields.js';
 import { registerDefaultCalculators } from './services/registerDefaultCalculators.js';
 import { registerDefaultCouponCollectionFilters } from './services/registerDefaultCouponCollectionFilters.js';
+import { registerDefaultPromotionCollectionFilters } from './services/registerDefaultPromotionCollectionFilters.js';
 import { registerDefaultValidators } from './services/registerDefaultValidators.js';
 
 export default () => {
@@ -33,6 +34,16 @@ export default () => {
   );
   addProcessor(
     'couponCollectionFilters',
+    (filters) => [...filters, ...defaultPaginationFilters],
+    2
+  );
+  addProcessor(
+    'promotionCollectionFilters',
+    registerDefaultPromotionCollectionFilters,
+    1
+  );
+  addProcessor(
+    'promotionCollectionFilters',
     (filters) => [...filters, ...defaultPaginationFilters],
     2
   );

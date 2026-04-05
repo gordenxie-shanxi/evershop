@@ -56,7 +56,8 @@ function Products({
 
   if (
     watchDiscountType !== 'fixed_discount_to_specific_products' &&
-    watchDiscountType !== 'percentage_discount_to_specific_products'
+    watchDiscountType !== 'percentage_discount_to_specific_products' &&
+    watchDiscountType !== 'second_item_discount'
   ) {
     return null;
   }
@@ -263,7 +264,8 @@ export function TargetProducts({
   const watchDiscountType = watch('discount_type');
   if (
     watchDiscountType !== 'fixed_discount_to_specific_products' &&
-    watchDiscountType !== 'percentage_discount_to_specific_products'
+    watchDiscountType !== 'percentage_discount_to_specific_products' &&
+    watchDiscountType !== 'second_item_discount'
   ) {
     return null;
   }

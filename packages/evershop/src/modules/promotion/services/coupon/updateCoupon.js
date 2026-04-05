@@ -13,6 +13,20 @@ import {
 } from '../../../../lib/util/registry.js';
 import { getAjv } from '../../../base/services/getAjv.js';
 import couponDataSchema from './couponDataSchema.json' with { type: 'json' };
+import { normalizeCouponPayload } from './normalizeCouponPayload.js';
+
+function validateSpendAndSaveCouponData(data, existingCoupon = null) {
+  const effectiveDiscountType = data.discount_type || existingCoupon?.discount_type;
+  const effectiveSpendTiers =
+    data.spend_tiers !== undefined ? data.spend_tiers : existingCoupon?.spend_tiers;
+
+  if (
+    effectiveDiscountType === 'spend_and_save' &&
+    (!Array.isArray(effectiveSpendTiers) || effectiveSpendTiers.length === 0)
+  ) {
+    throw new Error('Spend and save coupons require at least one spend tier');
+  }
+}
 
 function validateCouponDataBeforeInsert(data) {
   const ajv = getAjv();
@@ -46,6 +60,18 @@ async function updateCouponData(uuid, data, connection) {
       .where('uuid', '=', uuid)
       .execute(connection);
 
+    if (data.coupon && data.coupon !== coupon.coupon) {
+      await update('order')
+        .given({ coupon: data.coupon })
+        .where('coupon', '=', coupon.coupon)
+        .execute(connection);
+
+      await update('customer_coupon_use')
+        .given({ coupon: data.coupon })
+        .where('coupon_id', '=', coupon.coupon_id)
+        .execute(connection);
+    }
+
     return newCoupon;
   } catch (e) {
     if (!e.message.includes('No data was provided')) {
@@ -65,7 +91,19 @@ async function updateCoupon(uuid, data, context) {
   const connection = await getConnection();
   await startTransaction(connection);
   try {
-    const couponData = await getValue('couponDataBeforeUpdate', data);
+    const existingCoupon = await select()
+      .from('coupon')
+      .where('uuid', '=', uuid)
+      .load(connection);
+
+    if (!existingCoupon) {
+      throw new Error('Requested coupon not found');
+    }
+
+    const couponData = normalizeCouponPayload(
+      await getValue('couponDataBeforeUpdate', data)
+    );
+    validateSpendAndSaveCouponData(couponData, existingCoupon);
     // Validate coupon data
     validateCouponDataBeforeInsert(couponData);
 
