@@ -56,11 +56,6 @@ export function registerCartPromotionFields(fields) {
             await calculateDiscount(this, coupon);
             const couponSnapshot = captureItemDiscountSnapshot(items);
 
-            if (couponSnapshot.total === 0) {
-              await applyItemDiscountSnapshot(items, promotionDiscounts);
-              return promotionCandidate.total;
-            }
-
             const couponLoader = getValueSync('couponLoaderFunction');
             const couponDefinition = couponLoader
               ? await couponLoader(coupon)
@@ -68,6 +63,17 @@ export function registerCartPromotionFields(fields) {
             const isStackable =
               promotionCandidate.total > 0 &&
               couponDefinition?.stacking_rule === 'stackable';
+            const hasNonDiscountBenefit = couponDefinition?.free_shipping === true;
+
+            if (couponSnapshot.total === 0) {
+              if (isStackable || !hasNonDiscountBenefit) {
+                await applyItemDiscountSnapshot(items, promotionDiscounts);
+                return promotionCandidate.total;
+              }
+
+              await applyItemDiscountSnapshot(items, couponSnapshot.discounts);
+              return couponSnapshot.total;
+            }
 
             if (!isStackable) {
               await applyItemDiscountSnapshot(items, couponSnapshot.discounts);
