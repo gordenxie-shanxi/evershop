@@ -21,7 +21,7 @@ const SearchQuery = `
 `;
 
 interface AttributeGroupIdentifier {
-  attributeGroupId?: string | number;
+  attributeGroupId?: string | number | undefined;
   uuid?: string;
 }
 
